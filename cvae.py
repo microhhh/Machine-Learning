@@ -180,22 +180,19 @@ def main():
     # Build the computation graph
     n_particles = tf.placeholder(tf.int32, shape=[], name="n_particles")
     x_input = tf.placeholder(tf.float32, shape=[None, x_dim], name="x")
-    # Add noise ???
+    # Add noise
     x = tf.to_int32(tf.less(tf.random_uniform(tf.shape(x_input)), x_input))
     y_input = tf.placeholder(tf.float32, shape=[None, y_dim], name="y")
     n = tf.placeholder(tf.int32, shape=[], name="n")
 
     meta_model = build_gen(x_dim, y_input, z_dim, n, n_particles)
     variational = build_q_net(x, y_input, z_dim, n_particles)
-
+    qz_samples, log_qz = variational.query('z', outputs=True,
+                                           local_log_prob=True)
     lower_bound = zs.variational.elbo(
         meta_model, {"x": x}, variational=variational, axis=0)
     cost = tf.reduce_mean(lower_bound.sgvb())
     lower_bound = tf.reduce_mean(lower_bound)
-
-    # # Importance sampling estimates of marginal log likelihood
-    # is_log_likelihood = tf.reduce_mean(
-    #     zs.is_loglikelihood(gen, observed={"x": x}, proposal=q_net, axis=0))
 
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
     infer_op = optimizer.minimize(cost)
@@ -208,9 +205,6 @@ def main():
     batch_size = 128
     iters = x_train.shape[0] // batch_size
     save_freq = 10
-    test_freq = 10
-    test_batch_size = 400
-    test_iters = x_test.shape[0] // test_batch_size
     result_path = "results/cvae"
     condition = np.array(range(10))
     condition_onehot = to_one_hot(condition, 10)
@@ -221,7 +215,6 @@ def main():
 
         for epoch in range(1, epochs + 1):
             time_epoch = -time.time()
-            # np.random.shuffle(x_train)
             np.random.shuffle(train_data)
             x_train = train_data[:, :x_dim].reshape((data_size, x_dim))
             y_train = train_data[:, x_dim:].reshape((data_size, y_dim))
