@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 import os
 import time
 import gzip
@@ -14,8 +11,6 @@ from six.moves import urllib, range
 from six.moves import cPickle as pickle
 from skimage.exposure import rescale_intensity
 from skimage import io, img_as_ubyte
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 # copy from examples.utils with dataset, save_image_collections, to_one_hot,download_dataset,load_mnist_realval
@@ -64,7 +59,6 @@ def to_one_hot(x, depth):
     Get one-hot representation of a 1-D numpy array of integers.
     :param x: 1-D Numpy array of type int.
     :param depth: A int.
-
     :return: 2-D Numpy array of type int.
     """
     ret = np.zeros((x.shape[0], depth))
@@ -85,7 +79,6 @@ def load_mnist_realval(path, one_hot=True, dequantify=False):
     :param one_hot: Whether to use one-hot representation for the labels.
     :param dequantify:  Whether to add uniform noise to dequantify the data
         following (Uria, 2013).
-
     :return: The MNIST dataset.
     """
 
@@ -168,7 +161,6 @@ def main():
         load_mnist_realval("./mnist.pkl.gz")
     x_train = np.vstack([x_train, x_valid])
     y_train = np.vstack([t_train, t_valid])
-    x_test = np.random.binomial(1, x_test, size=x_test.shape)
     x_dim = x_train.shape[1]
     y_dim = y_train.shape[1]
     train_data = np.hstack([x_train, y_train])
@@ -180,15 +172,13 @@ def main():
     # Build the computation graph
     n_particles = tf.placeholder(tf.int32, shape=[], name="n_particles")
     x_input = tf.placeholder(tf.float32, shape=[None, x_dim], name="x")
-    # Add noise
     x = tf.to_int32(tf.less(tf.random_uniform(tf.shape(x_input)), x_input))
     y_input = tf.placeholder(tf.float32, shape=[None, y_dim], name="y")
     n = tf.placeholder(tf.int32, shape=[], name="n")
 
     meta_model = build_gen(x_dim, y_input, z_dim, n, n_particles)
     variational = build_q_net(x, y_input, z_dim, n_particles)
-    qz_samples, log_qz = variational.query('z', outputs=True,
-                                           local_log_prob=True)
+
     lower_bound = zs.variational.elbo(
         meta_model, {"x": x}, variational=variational, axis=0)
     cost = tf.reduce_mean(lower_bound.sgvb())
@@ -223,20 +213,18 @@ def main():
                 x_batch = x_train[t * batch_size:(t + 1) * batch_size]
                 y_batch = y_train[t * batch_size:(t + 1) * batch_size]
                 _, lb = sess.run([infer_op, lower_bound],
-                                 feed_dict={x_input: x_batch,
-                                            y_input: y_batch,
-                                            n_particles: 1,
-                                            n: batch_size})
+                                 feed_dict={x_input: x_batch, y_input: y_batch,
+                                            n_particles: 1, n: batch_size})
                 lbs.append(lb)
             time_epoch += time.time()
             print("Epoch {} ({:.1f}s): Lower bound = {}".format(
                 epoch, time_epoch, np.mean(lbs)))
 
             if epoch % save_freq == 0:
-                for ix in range(10):
-                    test_input = np.tile(condition_onehot[ix], [100, 1])
+                for item in range(10):
+                    test_input = np.tile(condition_onehot[item], [100, 1])
                     images = sess.run(x_gen, feed_dict={y_input: test_input, n: 100, n_particles: 1})
-                    name = os.path.join(result_path + '/num_{}/'.format(ix),
+                    name = os.path.join(result_path + '/num_{}/'.format(item),
                                         "cvae_epoch_{}.png".format(epoch))
                     save_image_collections(images, name)
 
