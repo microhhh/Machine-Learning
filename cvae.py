@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
 import os
 import time
 import gzip
@@ -196,8 +199,7 @@ def main():
     iters = x_train.shape[0] // batch_size
     save_freq = 10
     result_path = "results/cvae"
-    condition = np.array(range(10))
-    condition_onehot = to_one_hot(condition, 10)
+    condition = to_one_hot(np.array(range(10)), 10)
 
     # Run the inference
     with tf.Session() as sess:
@@ -217,15 +219,13 @@ def main():
                                             n_particles: 1, n: batch_size})
                 lbs.append(lb)
             time_epoch += time.time()
-            print("Epoch {} ({:.1f}s): Lower bound = {}".format(
-                epoch, time_epoch, np.mean(lbs)))
+            print("Epoch {} ({:.1f}s): Lower bound = {}".format(epoch, time_epoch, np.mean(lbs)))
 
             if epoch % save_freq == 0:
                 for item in range(10):
-                    test_input = np.tile(condition_onehot[item], [100, 1])
-                    images = sess.run(x_gen, feed_dict={y_input: test_input, n: 100, n_particles: 1})
-                    name = os.path.join(result_path + '/num_{}/'.format(item),
-                                        "cvae_epoch_{}.png".format(epoch))
+                    gen_target = np.tile(condition[item], [100, 1])
+                    images = sess.run(x_gen, feed_dict={y_input: gen_target, n: 100, n_particles: 1})
+                    name = os.path.join(result_path + '/number_{}/'.format(item), "cvae_epoch_{}.png".format(epoch))
                     save_image_collections(images, name)
 
 
